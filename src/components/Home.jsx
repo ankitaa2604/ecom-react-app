@@ -1,14 +1,12 @@
 import React, { useContext, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "../axios";
+import axios from "axios";
 import AppContext from "../Context/Context";
-import { useNavigate } from "react-router-dom";
 
-const Home = () => {
-  const { data, isError, refreshData } = useContext(AppContext);
+const Home = ({ selectedCategory }) => {
+  const { data, isError, addToCart, refreshData } = useContext(AppContext);
   const [products, setProducts] = useState([]);
   const [isDataFetched, setIsDataFetched] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (!isDataFetched) {
@@ -19,22 +17,36 @@ const Home = () => {
 
   useEffect(() => {
     if (data && data.length > 0) {
-      const fetchData = async () => {
-        try {
-          const response = await axios.get(
-            "http://localhost:8080/api/products"
-          );
-          setProducts(response.data);
-          console.log(products);
-          
-          console.log(response.data);
-        } catch (error) {
-          console.error("Error fetching data:", error);
-        }
+      const fetchImagesAndUpdateProducts = async () => {
+        const updatedProducts = await Promise.all(
+          data.map(async (product) => {
+            try {
+              const response = await axios.get(
+                `http://localhost:8080/api/product/${product.id}/image`,
+                { responseType: "blob" }
+              );
+              const imageUrl = URL.createObjectURL(response.data);
+              return { ...product, imageUrl };
+            } catch (error) {
+              console.error(
+                "Error fetching image for product ID:",
+                product.id,
+                error
+              );
+              return { ...product, imageUrl: "placeholder-image-url" };
+            }
+          })
+        );
+        setProducts(updatedProducts);
       };
-      fetchData();
+
+      fetchImagesAndUpdateProducts();
     }
   }, [data]);
+
+  const filteredProducts = selectedCategory
+    ? products.filter((product) => product.category === selectedCategory)
+    : products;
 
   if (isError) {
     return (
@@ -43,53 +55,121 @@ const Home = () => {
       </h2>
     );
   }
-
-return (
-    <div className="grid">
-      {products.map((product) => (
-        <div
-          className="card mb-3"
-          key={product.Id}
-          style={{
-            width: "18rem",
-            height: "14rem",
-            boxShadow: "rgba(0, 0, 0, 0.24) 0px 2px 3px",
-            margin: "10px",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <div className="card-body d-flex flex-column justify-content-between">
-            <div>
-              <h5 className="card-title">
-                {product.name.toUpperCase()}
-              </h5>
-              <span>
-                by <i>{product.brand}</i>
-              </span>
-            </div>
-
-            <div>
-              <h5>${product.price}</h5>
-
-              <button
-                className="btn btn-outline-secondary w-100 mb-2"
-                onClick={() => navigate(`/product/${product.Id}`)}
+  return (
+    <>
+      <div className="grid">
+        {filteredProducts.length === 0 ? (
+          <h2
+            className="text-center"
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            No Products Available
+          </h2>
+        ) : (
+          filteredProducts.map((product) => {
+            const { id, brand, name, price, productAvailable, imageUrl } =
+              product;
+            const cardStyle = {
+              width: "18rem",
+              height: "12rem",
+              boxShadow: "rgba(0, 0, 0, 0.24) 0px 2px 3px",
+              backgroundColor: productAvailable ? "#fff" : "#ccc",
+            };
+            return (
+              <div
+                className="card mb-3"
+                style={{
+                  width: "18rem",
+                  height: "24rem",
+                  boxShadow: "rgba(0, 0, 0, 0.24) 0px 2px 3px",
+                  backgroundColor: productAvailable ? "#fff" : "#ccc",
+                  margin: "10px",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+                key={id}
               >
-                View Details
-              </button>
-
-              <button
-                className="btn btn-primary w-100"
-                onClick={() => addToCart(product)}
-              >
-                Add to Cart
-              </button>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
+                <Link
+                  to={`/product/${id}`}
+                  style={{ textDecoration: "none", color: "inherit" }}
+                >
+                  <img
+                    src={imageUrl}
+                    alt={name}
+                    style={{
+                      width: "100%",
+                      height: "180px",
+                      objectFit: "cover",
+                      padding: "5px",
+                      margin: "0",
+                    }}
+                  />
+                  <div
+                    className="buttons"
+                    style={{
+                      position: "absolute",
+                      top: "25px",
+                      left: "220px",
+                      zIndex: "1",
+                      
+                    }}
+                  >
+                    <div className="buttons-liked">
+                      <i className="bi bi-heart"></i>
+                    </div>
+                  </div>
+                  <div
+                    className="card-body"
+                    style={{
+                      flexGrow: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      padding: "10px",
+                    }}
+                  >
+                    <div>
+                      <h5
+                        className="card-title"
+                        style={{ margin: "0 0 10px 0" }}
+                      >
+                        {name.toUpperCase()}
+                      </h5>
+                      <i className="card-brand" style={{ fontStyle: "italic" }}>
+                        {"~ " + brand}
+                      </i>
+                    </div>
+                    <div>
+                      <h5
+                        className="card-text"
+                        style={{ fontWeight: "600", margin: "5px 0" }}
+                      >
+                        {"$" + price}
+                      </h5>
+                      <button
+                        className="btn btn-primary"
+                        style={{ width: "100%" }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          addToCart(product);
+                        }}
+                        disabled={!productAvailable}
+                      >
+                        {productAvailable ? "Add to Cart" : "Out of Stock"}
+                      </button>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </>
   );
 };
 

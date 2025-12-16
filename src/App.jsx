@@ -1,12 +1,18 @@
+import "./App.css";
 import React, { useState, useEffect } from "react";
-import './App.css'
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AppProvider } from "./Context/Context";
 import Home from "./components/Home";
 import Navbar from "./components/Navbar";
 import Cart from "./components/Cart.jsx";
 import AddProduct from "./components/AddProduct";
 import Product from "./components/Product";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AppProvider } from "./Context/Context";
+
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import 'bootstrap/dist/css/bootstrap.min.css';
+
+
 function App() {
   const [cart, setCart] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -15,7 +21,6 @@ function App() {
     setSelectedCategory(category);
     console.log("Selected category:", category);
   };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const addToCart = (product) => {
     const existingProduct = cart.find((item) => item.id === product.id);
     if (existingProduct) {
@@ -32,7 +37,7 @@ function App() {
   };
 
   return (
-  //  <AppProvider>
+    <AppProvider>
       <BrowserRouter>
         <Navbar onSelectCategory={handleCategorySelect}
          />
@@ -45,13 +50,13 @@ function App() {
             }
           />
           <Route path="/add_product" element={<AddProduct />} />
-          {/* <Route path="/product" element={<Product  />} /> */}
-          <Route path="/product/:id" element={<Product  />} />
+          <Route path="/product" element={<Product  />} />
+          <Route path="product/:id" element={<Product  />} />
           <Route path="/cart" element={<Cart />} />
         </Routes>
       </BrowserRouter>
-    // </AppProvider>
-  )
+    </AppProvider>
+  );
 }
 
-export default App
+export default App;
